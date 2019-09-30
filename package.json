@@ -1,0 +1,12 @@
+{
+  "name": "gs",
+  "version": "1.0.0",
+  "description": "Gale Shapley Homework for CSC321A with Dr. Salvador Gutierrez",
+  "main": "gs.js",
+  "author": "Swornim Barahi",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "underscore": "^1.9.1"
+  }
+}
