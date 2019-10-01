@@ -17,7 +17,7 @@
 
 // importing modules
 const _ = require("underscore");
-
+const { performance } = require("perf_hooks");
 
 /**
  *
@@ -33,28 +33,34 @@ const _ = require("underscore");
  *
  */
 const createRandomPreferenceList = (suitors, girls) => {
-	let preferences = new Object();
+	let girlPreferences = new Object();
+	let suitorPreferences = new Object();
 	for (let suitor of suitors) {
-		preferences[suitor] = [0, _.shuffle(girls)];
+		suitorPreferences[suitor] = [0, _.shuffle(girls)];
 	}
 	for (let girl of girls) {
-		preferences[girl] = [0, _.shuffle(suitors)];
+		girlPreferences[girl] = _.shuffle(suitors);
 	}
-	return preferences;
+	return [suitorPreferences, girlPreferences];
 };
 
 /**
  *
  * @param { Object/Map } preferences      The randomized map with each
  *                                        person's preference list
+ * 
+ * @returns { void }
  *
  * @description                           Prints the map in a tabular format
  *
  */
-const printPreferenceTable = preferences => {
+const printPreferenceTable = (suitorPreferences, girlPreferences) => {
 	console.log("Preference Table:");
-	for (let entry in preferences) {
-		console.log(entry + ":\t", preferences[entry][1].join("  "));
+	for (let entry in suitorPreferences) {
+		console.log(entry + ":\t", suitorPreferences[entry][1].join("  "));
+	}
+	for (let entry in girlPreferences) {
+		console.log(entry + ":\t", girlPreferences[entry].join("  "));
 	}
 };
 
@@ -93,36 +99,34 @@ const printResult = matches => {
  *
  * @description                         The steps are explained in the
  *                                      function body
- * 
  */
-const galeShapley = (suitors, preferences) => {
+const galeShapley = (suitors, suitorPreferences, girlPreferences, verbose) => {
 	// Initialize Map to add matched pairs
 	let matches = new Map();
-
-	suitors.reverse();
 
 	// While there exists a man who is not engaged
 	// and still has a woman to propose to
 	while (suitors.length !== 0) {
 		// currentSuitor is the man who proposes
 		let currentSuitor = suitors.pop();
-		let currentPreferenceNumber = preferences[currentSuitor][0];
-		preferences[currentSuitor][0]++;
+		let currentPreferenceNumber = suitorPreferences[currentSuitor][0];
+		suitorPreferences[currentSuitor][0]++;
 
 		// currentGirl is the preferred girl for currentSuitor
-		let currentGirl = preferences[currentSuitor][1][currentPreferenceNumber];
-		console.log(currentSuitor, "proposes to", currentGirl);
+		let currentGirl =
+			suitorPreferences[currentSuitor][1][currentPreferenceNumber];
+		verbose && console.log(currentSuitor, "proposes to", currentGirl);
 
 		// If currentGirl is not engaged
 		if (!matches.has(currentGirl)) {
 			// currentSuitor and currentGirl get engaged
 			matches.set(currentGirl, currentSuitor);
-			console.log(currentSuitor, "is engaged to", currentGirl);
+			verbose && console.log(currentSuitor, "is engaged to", currentGirl);
 		} else if (
 			// If currentGirl is engaged and prefers their matched
 			// partner to currentSuitor
-			preferences[currentGirl][1].indexOf(currentSuitor) >
-			preferences[currentGirl][1].indexOf(matches.get(currentGirl))
+			girlPreferences[currentGirl].indexOf(currentSuitor) >
+			girlPreferences[currentGirl].indexOf(matches.get(currentGirl))
 		) {
 			// The current suitor has to wait their turn
 			suitors.push(currentSuitor);
@@ -130,7 +134,7 @@ const galeShapley = (suitors, preferences) => {
 			// If currentGirl prefers currentSuitor she replaces
 			// her partner with currentSuitor
 			suitors.push(matches.get(currentGirl));
-			console.log(currentGirl, "dumps", matches.get(currentGirl));
+			verbose && console.log(currentGirl, "dumps", matches.get(currentGirl));
 			matches.set(currentGirl, currentSuitor);
 		}
 	}
@@ -139,79 +143,65 @@ const galeShapley = (suitors, preferences) => {
 
 /**
  *
- * @param { number[] }    suitors       The array of suitors
- * @param { Object/Map }  preferences   The randomized map with each
- *                                      person's preference list
- *
  * @returns { Map }                     Return the map of the matches
  *                                      from the Gale-Shapely Algorithm
  *
  * @description                         The steps are explained in the
  *                                      function body
  */
-function runGaleShapley() {
-	let suitors = [
-		"Jon",
-		"Ian",
-		"Hal",
-		"Gav",
-		"Fred",
-		"Ed",
-		"Dan",
-		"Col",
-		"Bob",
-		"Abe"
-	];zzz
+function runGaleShapley(num = 1000, verbose) {
+	let suitors = [];
+	let girls = [];
 
-	let girls = [
-		"Abi",
-		"Bea",
-		"Cath",
-		"Dee",
-		"Eve",
-		"Fay",
-		"Gay",
-		"Hope",
-		"Ivy",
-		"Jan"
-	];
+	for (let i = 0; i < num; i++) {
+		suitors.push(i);
+		girls.push(i);
+	}
 
 	// Creating a preference list
-	let preferences = createRandomPreferenceList(suitors, girls);
-
-	// Log the Table
-	printPreferenceTable(preferences);
-
-	console.log("\n\n");
-
-	// Time the algorithm
-	const startUsage = process.cpuUsage();
-	console.time("Elapsed wall clock time:\t");
-
-	// Run the Gale-Shapley Algorithm
-	let matches = galeShapley(suitors, preferences);
-
-	console.log("\n\n");
-
-	// Log the time taken
-	console.timeEnd("Elapsed wall clock time:\t");
-	console.log(
-		"Elapsed CPU time:\t\t  " +
-			(process.cpuUsage(startUsage)["user"] / 1000000).toFixed(6)
+	let [suitorPreferences, girlPreferences] = createRandomPreferenceList(
+		suitors,
+		girls
 	);
 
+	// Log the Table
+	verbose && printPreferenceTable(suitorPreferences, girlPreferences);
+
+	verbose && console.log("\n\n");
+
+	// Time the algorithm
+	let t0 = performance.now();
+
+	// Run the Gale-Shapley Algorithm
+	let matches = galeShapley(
+		suitors,
+		suitorPreferences,
+		girlPreferences,
+		verbose
+	);
+
+	verbose && console.log("\n\n");
+
+	// Log the time taken
+	let t1 = performance.now();
+	console.log(num, t1 - t0);
+	// console.log((process.cpuUsage(startUsage)["user"] / 1000000).toFixed(6));
+
 	// Log the Results
-	printResult(matches);
+	verbose && printResult(matches);
 }
 
 /**
- * @description   This function runs all the other necessary functions to run
+ * 
+ * @returns { void }
+ * 
+ * @description   This function initializes all necessary resources to run
  *                the Gale-Shapley Algorithm
  */
 function main() {
-	runGaleShapley();
+	const verbose = process.argv[3] === "-v" || process.argv[3] === "verbose";
+	runGaleShapley(Number(process.argv[2]), verbose);
 }
 
 // Run the main
 main();
-
