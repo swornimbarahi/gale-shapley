@@ -4,25 +4,25 @@
  * @name:         Lab 0
  * @class:        CSC321A (Design and Analysis of Algorithms)
  * @description:  Implement the Gale Shapley Algorithm
- *                (with a data of 10 suitors and 10 girls)
- *                Started writing at 9/10/2019
+ *                (with Integers instead of names)
+ *                Started writing at 9/15/2019
  * @summary:      To run this code you must first have the following
  *                installed.
  *                 * Node       https://nodejs.org/en/
  *                 * Yarn       https://yarnpkg.com/en/docs/install
  *                In the terminal, run the following commands
  *                 * yarn
- *                 * node ./gs.js
+ *                 * node ./gs1.js
  */
 
 // importing modules
 const _ = require("underscore");
-const readline = require("readline");
+
 
 /**
  *
- * @argument { string[] } suitors   The array of suitors
- * @argument { string[] } girls     The array of girls
+ * @argument { number[] } suitors   The array of suitors
+ * @argument { number[] } girls     The array of girls
  * @returns { Object/Map }          The preferences map with
  *                                  each person's preference list
  *
@@ -33,15 +33,14 @@ const readline = require("readline");
  *
  */
 const createRandomPreferenceList = (suitors, girls) => {
-	let girlPreferences = new Object();
-	let suitorPreferences = new Object();
+	let preferences = new Object();
 	for (let suitor of suitors) {
-		suitorPreferences[suitor] = [0, _.shuffle(girls)];
+		preferences[suitor] = [0, _.shuffle(girls)];
 	}
 	for (let girl of girls) {
-		girlPreferences[girl] = _.shuffle(suitors);
+		preferences[girl] = [0, _.shuffle(suitors)];
 	}
-	return [suitorPreferences, girlPreferences];
+	return preferences;
 };
 
 /**
@@ -52,13 +51,10 @@ const createRandomPreferenceList = (suitors, girls) => {
  * @description                           Prints the map in a tabular format
  *
  */
-const printPreferenceTable = (suitorPreferences, girlPreferences) => {
+const printPreferenceTable = preferences => {
 	console.log("Preference Table:");
-	for (let entry in suitorPreferences) {
-		console.log(entry + ":\t", suitorPreferences[entry][1].join("  "));
-  }
-  for (let entry in girlPreferences) {
-		console.log(entry + ":\t", girlPreferences[entry].join("  "));
+	for (let entry in preferences) {
+		console.log(entry + ":\t", preferences[entry][1].join("  "));
 	}
 };
 
@@ -88,7 +84,7 @@ const printResult = matches => {
 
 /**
  *
- * @param { string[] }    suitors       The array of suitors
+ * @param { number[] }    suitors       The array of suitors
  * @param { Object/Map }  preferences   The randomized map with each
  *                                      person's preference list
  *
@@ -97,8 +93,9 @@ const printResult = matches => {
  *
  * @description                         The steps are explained in the
  *                                      function body
+ * 
  */
-const galeShapley = (suitors, suitorPreferences, girlPreferences) => {
+const galeShapley = (suitors, preferences) => {
 	// Initialize Map to add matched pairs
 	let matches = new Map();
 
@@ -109,11 +106,11 @@ const galeShapley = (suitors, suitorPreferences, girlPreferences) => {
 	while (suitors.length !== 0) {
 		// currentSuitor is the man who proposes
 		let currentSuitor = suitors.pop();
-		let currentPreferenceNumber = suitorPreferences[currentSuitor][0];
-		suitorPreferences[currentSuitor][0]++;
+		let currentPreferenceNumber = preferences[currentSuitor][0];
+		preferences[currentSuitor][0]++;
 
 		// currentGirl is the preferred girl for currentSuitor
-		let currentGirl = suitorPreferences[currentSuitor][1][currentPreferenceNumber];
+		let currentGirl = preferences[currentSuitor][1][currentPreferenceNumber];
 		console.log(currentSuitor, "proposes to", currentGirl);
 
 		// If currentGirl is not engaged
@@ -124,8 +121,8 @@ const galeShapley = (suitors, suitorPreferences, girlPreferences) => {
 		} else if (
 			// If currentGirl is engaged and prefers their matched
 			// partner to currentSuitor
-			girlPreferences[currentGirl][1].indexOf(currentSuitor) >
-			girlPreferences[currentGirl][1].indexOf(matches.get(currentGirl))
+			preferences[currentGirl][1].indexOf(currentSuitor) >
+			preferences[currentGirl][1].indexOf(matches.get(currentGirl))
 		) {
 			// The current suitor has to wait their turn
 			suitors.push(currentSuitor);
@@ -142,7 +139,7 @@ const galeShapley = (suitors, suitorPreferences, girlPreferences) => {
 
 /**
  *
- * @param { string[] }    suitors       The array of suitors
+ * @param { number[] }    suitors       The array of suitors
  * @param { Object/Map }  preferences   The randomized map with each
  *                                      person's preference list
  *
@@ -164,7 +161,7 @@ function runGaleShapley() {
 		"Col",
 		"Bob",
 		"Abe"
-	];
+	];zzz
 
 	let girls = [
 		"Abi",
@@ -180,10 +177,10 @@ function runGaleShapley() {
 	];
 
 	// Creating a preference list
-	let [suitorPreferences, girlPreferences] = createRandomPreferenceList(suitors, girls);
+	let preferences = createRandomPreferenceList(suitors, girls);
 
 	// Log the Table
-	printPreferenceTable(suitorPreferences, girlPreferences);
+	printPreferenceTable(preferences);
 
 	console.log("\n\n");
 
@@ -192,7 +189,7 @@ function runGaleShapley() {
 	console.time("Elapsed wall clock time:\t");
 
 	// Run the Gale-Shapley Algorithm
-	let matches = galeShapley(suitors, suitorPreferences, girlPreferences);
+	let matches = galeShapley(suitors, preferences);
 
 	console.log("\n\n");
 
@@ -212,23 +209,9 @@ function runGaleShapley() {
  *                the Gale-Shapley Algorithm
  */
 function main() {
-	const rl = readline.createInterface(process.stdin, process.stdout);
-  
-  runGaleShapley();
-  
-  rl.setPrompt("Another trial? (y)es, (n)o\n");
-  rl.prompt();
-
-	rl.on("line", line => {
-		if (line === "n" || line === "no") rl.close();
-
-		runGaleShapley();
-
-		rl.prompt();
-	}).on("close", () => {
-		process.exit(0);
-	});
+	runGaleShapley();
 }
 
 // Run the main
 main();
+
